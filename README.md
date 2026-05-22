@@ -44,25 +44,32 @@ OBS (FFmpeg custom output, FLAC) ──> Icecast 2 (mount: /live.flac)
 
 ## Quick start
 
+The production deploy assumes an existing reverse proxy is fronting the box (e.g. nginx already running on Unraid). The bundled Caddy service is only enabled via the `caddy` profile and is meant for self-contained TLS testing.
+
 1. Copy the env template and pick passwords:
    ```sh
    cp .env.example .env
    $EDITOR .env
    ```
-   For local dev, leave `VINYLSTREAM_HOSTNAME=localhost`. For prod, point your domain at the host and set `VINYLSTREAM_HOSTNAME=stream.example.com` so Caddy can fetch a Let's Encrypt cert.
 
 2. Build and start the stack:
    ```sh
+   # Production / reverse-proxy fronted (default):
    docker compose up --build -d
+
+   # Self-contained with Caddy handling TLS:
+   docker compose --profile caddy up --build -d
    ```
 
-3. Open the webapp at:
-   - Local dev: <http://localhost> (Caddy serves plain HTTP for `localhost`)
-   - Prod: `https://<your hostname>`
+3. Reach the webapp:
+   - With your own reverse proxy: configure it per `deploy/nginx/radio.revela.dev.conf` (vanilla nginx example). See `docs/UNRAID-DEPLOY.md` for the full Unraid+nginx walkthrough.
+   - With the Caddy profile: open `http://localhost` for local plain-HTTP, or `https://<your hostname>` if you set `VINYLSTREAM_HOSTNAME` to a real domain.
 
 4. Configure OBS to push FLAC to the Icecast mount. See [docs/OBS-SETUP.md](docs/OBS-SETUP.md).
 
 5. Hit Start Recording in OBS. The UI will flip to "Live now" within ~5 seconds.
+
+For the full Unraid deployment (appdata layout, nginx vhost, certbot, port-bind notes), see [docs/UNRAID-DEPLOY.md](docs/UNRAID-DEPLOY.md).
 
 ## Dev workflow
 

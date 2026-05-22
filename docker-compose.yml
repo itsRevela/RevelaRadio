@@ -12,10 +12,9 @@ services:
       ICECAST_MAX_LISTENERS: ${ICECAST_MAX_LISTENERS}
     ports:
       # Exposed so OBS / source clients can push to it directly.
-      # If you want OBS pushing over the internet, leave this open and
-      # protect it with a strong ICECAST_SOURCE_PASSWORD. For LAN-only
-      # ingest, bind to 127.0.0.1:8000:8000 instead.
-      - "8000:8000"
+      # Override the host bind via env (e.g. ICECAST_BIND=127.0.0.1)
+      # if you only want LAN-side ingest.
+      - "${ICECAST_BIND:-0.0.0.0}:${ICECAST_PORT:-8000}:8000"
     networks:
       - vinylstream
 
@@ -35,13 +34,23 @@ services:
       STREAM_NAME: ${STREAM_NAME}
       STREAM_DESCRIPTION: ${STREAM_DESCRIPTION}
       STREAM_GENRE: ${STREAM_GENRE}
+    ports:
+      # Backend HTTP port. Reverse-proxy traffic to this from your
+      # existing nginx (or whatever fronts the box). Bind to localhost
+      # by default so the host's nginx is the only thing that can
+      # reach it.
+      - "${VINYLSTREAM_BIND:-127.0.0.1}:${VINYLSTREAM_PORT:-8080}:8080"
     volumes:
       - vinylstream_data:/data
     networks:
       - vinylstream
 
+  # Caddy is optional. It's only useful when this box is responsible
+  # for TLS itself (no upstream reverse proxy). Enable it with:
+  #   docker compose --profile caddy up -d
   caddy:
     image: caddy:2-alpine
+    profiles: ["caddy"]
     restart: unless-stopped
     depends_on:
       - vinylstream
