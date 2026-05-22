@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+- Audio player in the webapp was non-functional (play button blocked by `/live.flac` 404) when the backend was reached on a different host port than Icecast. The backend now reverse-proxies the audio mount (and the `.m3u` / `.xspf` playlist variants) straight to Icecast with `FlushInterval = -1`, so listeners pull audio chunks unbuffered. This makes the same-origin assumption baked into the static frontend valid regardless of whether Caddy/NPM/nginx are in front.
+
 ### Changed
 - Caddy is now opt-in via the `caddy` compose profile. The default `docker compose up -d` brings up only `icecast` + `vinylstream` so an upstream reverse proxy (e.g. nginx already on the Unraid host) can front the stack without a second TLS terminator in the way.
 - Backend HTTP port is now bound to `127.0.0.1:8080` by default (override with `VINYLSTREAM_BIND` and `VINYLSTREAM_PORT`). Keeps the Go server unreachable from the LAN unless explicitly opened, since the reverse proxy is the intended entry point.

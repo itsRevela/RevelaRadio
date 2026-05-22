@@ -5,8 +5,11 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -66,6 +69,17 @@ func run(logger *slog.Logger) error {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
+	// Reverse-proxy the audio mount to Icecast so the page can hit it
+	// same-origin. Lets the upstream reverse proxy (NPM, Caddy, nginx)
+	// forward everything to a single backend.
+	flacProxy, err := newIcecastProxy(cfg.IcecastURL, logger)
+	if err != nil {
+		return err
+	}
+	mux.Handle(cfg.IcecastMount, flacProxy)
+	mux.Handle(cfg.IcecastMount+".m3u", flacProxy)
+	mux.Handle(cfg.IcecastMount+".xspf", flacProxy)
+
 	// Static files (the SPA-less frontend).
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
@@ -92,6 +106,26 @@ func run(logger *slog.Logger) error {
 
 type broadcastPayload struct {
 	Stream icecast.Status `json:"stream"`
+}
+
+// newIcecastProxy returns a reverse proxy that forwards listener requests
+// (audio mount, playlist files) to Icecast without buffering, so listeners
+// get audio chunks as fast as they arrive.
+func newIcecastProxy(icecastURL string, logger *slog.Logger) (*httputil.ReverseProxy, error) {
+	target, err := url.Parse(icecastURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse icecast url %q: %w", icecastURL, err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	// FlushInterval = -1 means "flush after every Write". Chunked audio
+	// becomes available to the listener immediately instead of waiting for
+	// the default buffer to fill.
+	proxy.FlushInterval = -1
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		logger.Warn("icecast proxy error", "path", r.URL.Path, "err", err)
+		http.Error(w, "stream unavailable", http.StatusBadGateway)
+	}
+	return proxy, nil
 }
 
 func pollLoop(
