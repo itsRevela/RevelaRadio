@@ -9,7 +9,6 @@
         statusDot: document.getElementById("status-dot"),
         statusLabel: document.getElementById("status-label"),
         audio: document.getElementById("audio"),
-        audioSource: document.getElementById("audio-source"),
         nowPlaying: document.getElementById("now-playing"),
         npText: document.getElementById("np-text"),
         listeners: document.getElementById("stat-listeners"),
@@ -58,8 +57,8 @@
         if (meta.description) {
             el.streamDescription.textContent = meta.description;
         }
-        if (meta.mount_path) {
-            el.audioSource.src = meta.mount_path;
+        if (meta.mount_path && el.audio.getAttribute("src") !== meta.mount_path) {
+            el.audio.setAttribute("src", meta.mount_path);
             el.audio.load();
         }
     }
