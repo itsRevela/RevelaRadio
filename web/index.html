@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VinylStream</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+    <main class="app">
+        <header class="masthead">
+            <h1 id="stream-name">VinylStream</h1>
+            <p id="stream-description" class="muted">Lossless audio livestream</p>
+        </header>
+
+        <section class="player" aria-label="Audio player">
+            <div class="status-row">
+                <span class="status-dot" id="status-dot" data-state="unknown" aria-hidden="true"></span>
+                <span id="status-label">connecting...</span>
+            </div>
+
+            <audio id="audio" controls preload="none" crossorigin="anonymous">
+                <source id="audio-source" src="/live.flac" type="audio/flac" />
+                <source src="/live.flac" type="audio/ogg" />
+                Your browser does not support the audio element.
+            </audio>
+
+            <div class="now-playing" id="now-playing" hidden>
+                <span class="np-label">Now playing</span>
+                <span id="np-text"></span>
+            </div>
+        </section>
+
+        <section class="stats" aria-label="Listener stats">
+            <div class="stat">
+                <span class="stat-value" id="stat-listeners">--</span>
+                <span class="stat-label">listening now</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-peak">--</span>
+                <span class="stat-label">peak (24h)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-bitrate">--</span>
+                <span class="stat-label">kbps</span>
+            </div>
+        </section>
+
+        <section class="history" aria-label="Listener history">
+            <header class="history-head">
+                <h2>Listeners over time</h2>
+                <div class="range-toggle" role="tablist">
+                    <button data-range="1h" type="button">1h</button>
+                    <button data-range="6h" type="button">6h</button>
+                    <button data-range="24h" class="active" type="button">24h</button>
+                    <button data-range="7d" type="button">7d</button>
+                </div>
+            </header>
+            <svg id="history-chart" viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="Listener count history"></svg>
+        </section>
+
+        <footer class="footer muted">
+            <span>VinylStream</span>
+            <span aria-hidden="true">·</span>
+            <span><a href="/live.flac">Direct stream URL</a></span>
+        </footer>
+    </main>
+
+    <script src="/app.js" defer></script>
+</body>
+</html>

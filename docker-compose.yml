@@ -1,0 +1,68 @@
+services:
+  icecast:
+    build: ./icecast
+    restart: unless-stopped
+    environment:
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD}
+      ICECAST_RELAY_PASSWORD: ${ICECAST_RELAY_PASSWORD}
+      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD}
+      ICECAST_ADMIN_USER: ${ICECAST_ADMIN_USER}
+      ICECAST_ADMIN_EMAIL: admin@${VINYLSTREAM_HOSTNAME}
+      ICECAST_HOSTNAME: ${VINYLSTREAM_HOSTNAME}
+      ICECAST_MAX_LISTENERS: ${ICECAST_MAX_LISTENERS}
+    ports:
+      # Exposed so OBS / source clients can push to it directly.
+      # If you want OBS pushing over the internet, leave this open and
+      # protect it with a strong ICECAST_SOURCE_PASSWORD. For LAN-only
+      # ingest, bind to 127.0.0.1:8000:8000 instead.
+      - "8000:8000"
+    networks:
+      - vinylstream
+
+  vinylstream:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - icecast
+    environment:
+      VINYLSTREAM_LISTEN: ${VINYLSTREAM_LISTEN}
+      VINYLSTREAM_DB: ${VINYLSTREAM_DB}
+      ICECAST_URL: ${ICECAST_URL}
+      ICECAST_MOUNT: ${ICECAST_MOUNT}
+      ICECAST_ADMIN_USER: ${ICECAST_ADMIN_USER}
+      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD}
+      ICECAST_POLL_INTERVAL: ${ICECAST_POLL_INTERVAL}
+      STREAM_NAME: ${STREAM_NAME}
+      STREAM_DESCRIPTION: ${STREAM_DESCRIPTION}
+      STREAM_GENRE: ${STREAM_GENRE}
+    volumes:
+      - vinylstream_data:/data
+    networks:
+      - vinylstream
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - vinylstream
+      - icecast
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      VINYLSTREAM_HOSTNAME: ${VINYLSTREAM_HOSTNAME}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - vinylstream
+
+networks:
+  vinylstream:
+    driver: bridge
+
+volumes:
+  vinylstream_data:
+  caddy_data:
+  caddy_config:

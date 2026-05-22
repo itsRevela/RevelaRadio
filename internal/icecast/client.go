@@ -1,0 +1,109 @@
+// Package icecast polls an Icecast 2 admin endpoint for live stream status.
+package icecast
+
+import (
+	"context"
+	"encoding/xml"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// Status is the parsed snapshot we expose to the rest of the app.
+type Status struct {
+	Online      bool      `json:"online"`
+	Listeners   int       `json:"listeners"`
+	PeakListeners int     `json:"peak_listeners"`
+	StreamTitle string    `json:"stream_title,omitempty"`
+	Artist      string    `json:"artist,omitempty"`
+	Genre       string    `json:"genre,omitempty"`
+	Bitrate     int       `json:"bitrate,omitempty"`
+	ContentType string    `json:"content_type,omitempty"`
+	StartedAt   time.Time `json:"started_at,omitempty"`
+	ObservedAt  time.Time `json:"observed_at"`
+}
+
+// Client polls Icecast's admin XML endpoint.
+type Client struct {
+	baseURL   string
+	mount     string
+	adminUser string
+	adminPass string
+	http      *http.Client
+}
+
+func NewClient(baseURL, mount, user, pass string) *Client {
+	return &Client{
+		baseURL:   strings.TrimRight(baseURL, "/"),
+		mount:     mount,
+		adminUser: user,
+		adminPass: pass,
+		http: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+	}
+}
+
+// adminStats is the XML structure returned by /admin/stats.
+type adminStats struct {
+	XMLName xml.Name `xml:"icestats"`
+	Sources []struct {
+		Mount         string `xml:"mount,attr"`
+		Listeners     int    `xml:"listeners"`
+		PeakListeners int    `xml:"listener_peak"`
+		Title         string `xml:"title"`
+		Artist        string `xml:"artist"`
+		Genre         string `xml:"genre"`
+		Bitrate       int    `xml:"bitrate"`
+		ContentType   string `xml:"server_type"`
+		StreamStart   string `xml:"stream_start_iso8601"`
+	} `xml:"source"`
+}
+
+// Fetch returns the current status for the configured mount.
+func (c *Client) Fetch(ctx context.Context) (Status, error) {
+	now := time.Now().UTC()
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/admin/stats", nil)
+	if err != nil {
+		return Status{ObservedAt: now}, err
+	}
+	req.SetBasicAuth(c.adminUser, c.adminPass)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return Status{ObservedAt: now}, fmt.Errorf("fetch icecast stats: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return Status{ObservedAt: now}, fmt.Errorf("icecast stats: status %d", resp.StatusCode)
+	}
+
+	var stats adminStats
+	if err := xml.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		return Status{ObservedAt: now}, fmt.Errorf("decode icecast stats: %w", err)
+	}
+
+	status := Status{ObservedAt: now}
+	for _, s := range stats.Sources {
+		if s.Mount != c.mount {
+			continue
+		}
+		status.Online = true
+		status.Listeners = s.Listeners
+		status.PeakListeners = s.PeakListeners
+		status.StreamTitle = s.Title
+		status.Artist = s.Artist
+		status.Genre = s.Genre
+		status.Bitrate = s.Bitrate
+		status.ContentType = s.ContentType
+		if s.StreamStart != "" {
+			if t, perr := time.Parse(time.RFC3339, s.StreamStart); perr == nil {
+				status.StartedAt = t
+			}
+		}
+		break
+	}
+	return status, nil
+}

@@ -1,0 +1,22 @@
+{$VINYLSTREAM_HOSTNAME} {
+	encode zstd gzip
+
+	# Proxy the live FLAC stream straight to Icecast.
+	# Browsers will hit https://<host>/live.flac and Caddy terminates TLS.
+	@stream path /live.flac /live.flac.* /status-json.xml
+	handle @stream {
+		reverse_proxy icecast:8000 {
+			# Icecast emits chunked audio - disable buffering so listeners
+			# get audio as fast as possible.
+			flush_interval -1
+			transport http {
+				read_buffer 4096
+			}
+		}
+	}
+
+	# Everything else (HTML, /api, /ws) goes to the Go backend.
+	handle {
+		reverse_proxy vinylstream:8080
+	}
+}
