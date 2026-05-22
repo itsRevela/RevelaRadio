@@ -46,7 +46,7 @@ func run(logger *slog.Logger) error {
 	defer store.Close()
 
 	cache := &api.LatestCache{}
-	hub := ws.NewHub(logger)
+	hub := ws.NewHub(logger, cfg.AllowedOrigins)
 	client := icecast.NewClient(cfg.IcecastURL, cfg.IcecastMount, cfg.IcecastAdminUser, cfg.IcecastAdminPass)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

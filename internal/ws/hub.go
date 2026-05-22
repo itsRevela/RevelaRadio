@@ -14,7 +14,8 @@ import (
 
 // Hub broadcasts arbitrary JSON-serialisable payloads to all connected clients.
 type Hub struct {
-	logger *slog.Logger
+	logger         *slog.Logger
+	originPatterns []string
 
 	mu      sync.RWMutex
 	clients map[*client]struct{}
@@ -26,10 +27,15 @@ type client struct {
 	send chan []byte
 }
 
-func NewHub(logger *slog.Logger) *Hub {
+// NewHub returns a Hub that only accepts WebSocket upgrades whose Origin
+// host matches one of originPatterns (case-insensitive filepath.Match).
+// Same-origin requests are always accepted; non-browser clients without
+// an Origin header are also accepted. Pass nil/empty for "same-origin only".
+func NewHub(logger *slog.Logger, originPatterns []string) *Hub {
 	return &Hub{
-		logger:  logger,
-		clients: make(map[*client]struct{}),
+		logger:         logger,
+		originPatterns: originPatterns,
+		clients:        make(map[*client]struct{}),
 	}
 }
 
@@ -85,9 +91,10 @@ func (h *Hub) remove(c *client) {
 func (h *Hub) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			// Caddy + same-origin make CSRF a non-issue here, but be permissive
-			// for local-dev cross-origin testing.
-			InsecureSkipVerify: true,
+			// Same-origin requests are always accepted by the library.
+			// originPatterns adds any extra hosts that may legitimately
+			// embed the player. Empty list = same-origin only.
+			OriginPatterns: h.originPatterns,
 		})
 		if err != nil {
 			h.logger.Warn("ws accept", "err", err)

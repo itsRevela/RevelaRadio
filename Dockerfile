@@ -10,14 +10,15 @@ COPY . .
 RUN go mod tidy && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/vinylstream ./cmd/server
 
-FROM gcr.io/distroless/static-debian12
+# Distroless static :nonroot pins UID 65532 with no shell and no other
+# binaries. The /data volume must be owned by 65532 on the host;
+# docker-compose.yml relies on a one-time chown of the named volume.
+FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 
-COPY --from=build /out/vinylstream /app/vinylstream
-COPY web /app/web
+COPY --from=build --chown=65532:65532 /out/vinylstream /app/vinylstream
+COPY --chown=65532:65532 web /app/web
 
-# Distroless has no shell, so we can't chown a mounted /data volume at start.
-# Running as root inside a no-shell image leaves a minimal attack surface and
-# keeps the SQLite path writable regardless of volume ownership.
+USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["/app/vinylstream"]

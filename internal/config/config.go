@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,11 @@ type Config struct {
 	StreamName        string
 	StreamDescription string
 	StreamGenre       string
+	// AllowedOrigins lists additional WebSocket origin hostnames to accept
+	// (comma-separated in VINYLSTREAM_ALLOWED_ORIGINS). Same-origin requests
+	// are always accepted by the WS library, so this is only needed if the
+	// player ever gets embedded on a different host.
+	AllowedOrigins []string
 }
 
 func Load() (*Config, error) {
@@ -36,6 +42,7 @@ func Load() (*Config, error) {
 		StreamName:        getenv("STREAM_NAME", "VinylStream"),
 		StreamDescription: getenv("STREAM_DESCRIPTION", "Lossless audio livestream"),
 		StreamGenre:       getenv("STREAM_GENRE", "Various"),
+		AllowedOrigins:    parseCSV(os.Getenv("VINYLSTREAM_ALLOWED_ORIGINS")),
 	}
 
 	if c.IcecastAdminPass == "" {
@@ -50,4 +57,24 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// parseCSV splits a comma-separated list, trimming whitespace and dropping
+// empty entries. Returns nil for an empty input.
+func parseCSV(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

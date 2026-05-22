@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+- vinylstream backend container now runs as UID 65532:65532 (the distroless `nonroot` user) instead of root. Requires a one-time chown of the `vinylstream_vinylstream_data` named volume; the README documents the command. Trims privileges in the unlikely event of an RCE.
+- WebSocket upgrade no longer accepts arbitrary origins. `internal/ws/hub.go` previously had `InsecureSkipVerify: true`, which let any cross-origin site open a WebSocket to `/ws` from a victim's browser. Now defaults to same-origin only. Embed the player from other hosts by setting `VINYLSTREAM_ALLOWED_ORIGINS` to a comma-separated glob list (e.g. `*.revela.dev`).
+- Container image versions pinned: `gcr.io/distroless/static-debian12:nonroot` instead of floating `latest`. Build-stage `golang:1.22-bookworm` retained (build-only, no runtime exposure).
+
 ### Fixed
 - Audio player in the webapp was non-functional (play button blocked by `/live.flac` 404) when the backend was reached on a different host port than Icecast. The backend now reverse-proxies the audio mount (and the `.m3u` / `.xspf` playlist variants) straight to Icecast with `FlushInterval = -1`, so listeners pull audio chunks unbuffered. This makes the same-origin assumption baked into the static frontend valid regardless of whether Caddy/NPM/nginx are in front.
 
