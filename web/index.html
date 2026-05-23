@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VinylStream</title>
+    <title>radio.revela.dev</title>
     <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+    <div class="bg" aria-hidden="true"></div>
+    <div class="bg-overlay" aria-hidden="true"></div>
+
     <main class="app">
         <header class="masthead">
-            <h1 id="stream-name">VinylStream</h1>
-            <p id="stream-description" class="muted">Lossless audio livestream</p>
+            <h1 id="stream-name">radio.revela.dev</h1>
+            <p id="stream-description" class="muted">Lossless vinyl audio livestream</p>
         </header>
 
         <section class="player" aria-label="Audio player">
@@ -19,20 +22,31 @@
                 <span id="status-label">connecting...</span>
             </div>
 
-            <!-- No `type` attribute or `crossorigin`: the browser sniffs the
-                 codec from Icecast's Content-Type header. Works for FLAC,
-                 Ogg/FLAC, MP3, AAC, anything the UA supports. -->
-            <audio id="audio" controls preload="none" src="/live.flac">
-                Your browser does not support the audio element.
-            </audio>
+            <div class="player-controls">
+                <button id="play-btn" type="button" class="play-btn" aria-pressed="false">
+                    <span class="play-icon" aria-hidden="true"></span>
+                    <span class="play-label">Play Stream</span>
+                </button>
 
-            <div class="now-playing" id="now-playing" hidden>
-                <span class="np-label">Now playing</span>
-                <span id="np-text"></span>
+                <div class="volume" role="group" aria-label="Volume">
+                    <span class="volume-icon" aria-hidden="true"></span>
+                    <input
+                        type="range"
+                        id="volume-slider"
+                        class="volume-slider"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="80"
+                        aria-label="Volume"
+                    />
+                </div>
             </div>
+
+            <audio id="audio" preload="none" src="/live.flac"></audio>
         </section>
 
-        <section class="stats" aria-label="Listener stats">
+        <section class="stats" aria-label="Stream stats">
             <div class="stat">
                 <span class="stat-value" id="stat-listeners">--</span>
                 <span class="stat-label">listening now</span>
@@ -42,8 +56,20 @@
                 <span class="stat-label">peak (24h)</span>
             </div>
             <div class="stat">
-                <span class="stat-value" id="stat-bitrate">--</span>
-                <span class="stat-label">kbps</span>
+                <span class="stat-value" id="stat-uptime">--</span>
+                <span class="stat-label">uptime</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-format">--</span>
+                <span class="stat-label">format</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-samplerate">--</span>
+                <span class="stat-label">sample rate</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="stat-bitdepth">--</span>
+                <span class="stat-label">bit depth</span>
             </div>
         </section>
 
@@ -61,9 +87,11 @@
         </section>
 
         <footer class="footer muted">
+            <a href="https://fluxer.gg/CgS3uFT7" target="_blank" rel="noopener">Contact</a>
+            <span aria-hidden="true">·</span>
             <span>VinylStream</span>
             <span aria-hidden="true">·</span>
-            <span><a href="/live.flac">Direct stream URL</a></span>
+            <a href="/live.flac">Direct stream</a>
         </footer>
     </main>
 

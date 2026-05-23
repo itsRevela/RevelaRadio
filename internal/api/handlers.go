@@ -23,6 +23,8 @@ type StreamMeta struct {
 	Description string `json:"description"`
 	Genre       string `json:"genre"`
 	MountPath   string `json:"mount_path"`
+	// BitDepth is a display label (e.g. "24-bit"). Empty = hide.
+	BitDepth string `json:"bit_depth,omitempty"`
 }
 
 type Handlers struct {

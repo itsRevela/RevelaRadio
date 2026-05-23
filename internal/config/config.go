@@ -18,6 +18,11 @@ type Config struct {
 	StreamName        string
 	StreamDescription string
 	StreamGenre       string
+	// StreamBitDepth is a free-text label like "24-bit" shown in the UI.
+	// Icecast doesn't surface bit depth in its stats, so this is configured
+	// out-of-band to match what the source client (BUTT, OBS, etc.) is set
+	// to send. Leave empty to hide the field.
+	StreamBitDepth string
 	// AllowedOrigins lists additional WebSocket origin hostnames to accept
 	// (comma-separated in VINYLSTREAM_ALLOWED_ORIGINS). Same-origin requests
 	// are always accepted by the WS library, so this is only needed if the
@@ -42,6 +47,7 @@ func Load() (*Config, error) {
 		StreamName:        getenv("STREAM_NAME", "VinylStream"),
 		StreamDescription: getenv("STREAM_DESCRIPTION", "Lossless audio livestream"),
 		StreamGenre:       getenv("STREAM_GENRE", "Various"),
+		StreamBitDepth:    os.Getenv("STREAM_BIT_DEPTH"),
 		AllowedOrigins:    parseCSV(os.Getenv("VINYLSTREAM_ALLOWED_ORIGINS")),
 	}
 

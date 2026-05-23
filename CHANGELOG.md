@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- Background image (`web/spellground-bg.png`) tiled across the page with a radial vignette overlay to soften repeat seams on ultrawide/widescreen/vertical viewports.
+- New stat cards on the player page: `Uptime`, `Format`, `Sample Rate`, `Bit Depth`. Sample rate and channels are parsed from Icecast's per-source `<channels>`/`<samplerate>` elements with a fallback to the semicolon-packed `audio_info` string. Bit depth is shown from the `STREAM_BIT_DEPTH` env var since Icecast doesn't surface it.
+- Footer "Contact" link pointing at the Fluxer channel.
+
+### Changed
+- Page heading and subheading switched to `radio.revela.dev` and `Lossless vinyl audio livestream`. Driven by the `STREAM_NAME` / `STREAM_DESCRIPTION` env vars in `.env`, no code change needed for further edits.
+- Removed the bitrate (kbps) stat. FLAC's bitrate varies block-by-block, so it was misleading; the bit depth + sample rate combo is the relevant lossless-stream signal.
+- Removed the "Now Playing" panel (was an unwired placeholder).
+- Audio control replaced with a custom `Play Stream` / `Stop Stream` toggle button plus a volume slider. The browser's default `<audio controls>` chrome is hidden. Volume is persisted to `localStorage` and restored across sessions.
+- Stopping playback now releases the `<audio>` element's source so the listener doesn't linger as a ghost on Icecast's listener count.
+
 ### Security
 - vinylstream backend container now runs as UID 65532:65532 (the distroless `nonroot` user) instead of root. Requires a one-time chown of the `vinylstream_vinylstream_data` named volume; the README documents the command. Trims privileges in the unlikely event of an RCE.
 - WebSocket upgrade no longer accepts arbitrary origins. `internal/ws/hub.go` previously had `InsecureSkipVerify: true`, which let any cross-origin site open a WebSocket to `/ws` from a victim's browser. Now defaults to same-origin only. Embed the player from other hosts by setting `VINYLSTREAM_ALLOWED_ORIGINS` to a comma-separated glob list (e.g. `*.revela.dev`).

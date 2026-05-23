@@ -62,6 +62,7 @@ func run(logger *slog.Logger) error {
 		Description: cfg.StreamDescription,
 		Genre:       cfg.StreamGenre,
 		MountPath:   cfg.IcecastMount,
+		BitDepth:    cfg.StreamBitDepth,
 	}
 	api.New(cache, store, meta).Register(mux)
 	mux.Handle("GET /ws", hub.Handler())
