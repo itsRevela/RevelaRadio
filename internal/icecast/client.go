@@ -125,17 +125,38 @@ func (c *Client) Fetch(ctx context.Context) (Status, error) {
 			}
 		}
 
-		if s.StreamStart != "" {
-			if t, perr := time.Parse(time.RFC3339, s.StreamStart); perr == nil {
-				status.StartedAt = t
-				if secs := int(now.Sub(t).Seconds()); secs > 0 {
-					status.UptimeSeconds = secs
-				}
+		if t, ok := parseStreamStart(s.StreamStart); ok {
+			status.StartedAt = t
+			if secs := int(now.Sub(t).Seconds()); secs > 0 {
+				status.UptimeSeconds = secs
 			}
 		}
 		break
 	}
 	return status, nil
+}
+
+// parseStreamStart accepts the timestamp formats Icecast actually emits for
+// `<stream_start_iso8601>`. The version shipping with Debian Bookworm
+// (Icecast 2.4.4) writes `+0000` without the colon, which time.RFC3339
+// rejects. Try the looser format first; fall back to canonical RFC3339 for
+// future versions / non-Debian builds.
+var streamStartFormats = []string{
+	"2006-01-02T15:04:05-0700",
+	time.RFC3339,
+	time.RFC3339Nano,
+}
+
+func parseStreamStart(s string) (time.Time, bool) {
+	if s == "" {
+		return time.Time{}, false
+	}
+	for _, f := range streamStartFormats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }
 
 // parseAudioInfo extracts channels and sample rate from Icecast's audio_info
