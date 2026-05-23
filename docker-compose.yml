@@ -34,6 +34,8 @@ services:
       STREAM_NAME: ${STREAM_NAME}
       STREAM_DESCRIPTION: ${STREAM_DESCRIPTION}
       STREAM_GENRE: ${STREAM_GENRE}
+      STREAM_BIT_DEPTH: ${STREAM_BIT_DEPTH:-}
+      VINYLSTREAM_ALLOWED_ORIGINS: ${VINYLSTREAM_ALLOWED_ORIGINS:-}
     ports:
       # Backend HTTP port. Reverse-proxy traffic to this from your
       # existing nginx (or whatever fronts the box). Bind to localhost
